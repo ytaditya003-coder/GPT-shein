@@ -1,59 +1,129 @@
+import requests
 import time
 import random
-import requests
+import re
 
-# --- CONFIGURATION ---
+# --- AAPKI DETAILS ---
 TOKEN = "8743319750:AAE6To6hX2b2gzG2PBTmfQDt1jPYGcqUdWI"
 CHAT_ID = "6814671965"
 
-COOKIE_STR = """V=1; _gcl_au=1.1.1503199170.1773918704; _fbp=fb.1.1773918703871.453933530924856478; _fpuuid=AqmDvQ8BXiwNFBIipm0ap; deviceId=AqmDvQ8BXiwNFBIipm0ap; EI=mcqJQvYOa0UyB7gpill1of8U6vpbLKn1clO%2BOcZuDmLBGnmQsymHC8huZb2WDcEQ; mE=she***************%40gmail.com; mN=91XXXXX560; un=aditya%20; MN=9198308560; CI=eb45c64f-699e-4ab7-87c0-712ad6df934f; PK=2O9VKB0%2B%2BKGPGSCWCnKwqWleYJP94kolBaFF8jQqrpLVFyTNSPJL4LAcaOQy5%2B31; SN=aditya; G=M; A=eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJzaGVpbl9hZGl0eWFyYW9yYmpAZ21haWwuY29tIiwicGtJZCI6ImViNDVjNjRmLTY5OWUtNGFiNy04N2MwLTcxMmFkNmRmOTM0ZiIsImNsaWVudE5hbWUiOiJ3ZWJfY2xpZW50Iiwicm9sZXMiOlt7Im5hbWUiOiJST0xFX0NVU1RPTUVSR1JPVVAifV0sIm1vYmlsZSI6IjkxOTgzMDg1NjAiLCJ0ZW5hbnRJZCI6IlNIRUlOIiwiZXhwIjoxNzc2MDEyMDMwLCJ1dWlkIjoiZWI0NWM2NGYtNjk5ZS00YWI3LTg3YzAtNzEyYWQ2ZGY5MzRmIiwiaWF0IjoxNzczNDIwMDMwLCJlbWFpbCI6ImFkaXR5YXJhb3JiakBnbWFpbC5jb20ifQ.U7yf-GMwLIXB9sZjNcixEhevk0YirrELcYJEICxNqusv3bdNY74GkKhtAPLXC5dL9MMfkPB7L_yqhCBkqyzk-oaA6eCya7K0Z1VrZY4usMusxIr_I9o0Bb3PqHjfw7mVudgCJNRveV-On45OEPg4Oj45gw-0xCWINWEfDJ08dnVMf9HbYnJqAepYbapeL1IH8YZ6gQCsmc0JFgWb6HbF3OkZ5f-HD_pu_TykBCPXAF0AvrELATteoD0EoRKy5vwCa_vinabKGg5RScTIrbc1U7I1zIvPEEz62g4SMnvoSTBJ3S9LUI2HCa5BlyljpjVnnr36UZvUySAn-XgMITubaw; U=adityaraorbj%40gmail.com; LS=LOGGED_IN; R=eyJhbGciOiJSUzI1NiJ9.eyJzZXNzaW9uIjp7InNlc3Npb25JZCI6ImYyYjIwMzEwLTU4MWUtNDAxYi05OTA5LTg1N2RhMWU3Y2I3NiIsImNsaWVudE5hbWUiOiJ3ZWJfY2xpZW50Iiwicm9sZXMiOlt7Im5hbWUiOiJST0xFX0NVU1RPTUVSR1JPVVAifV19LCJ0eXBlIjoicmVmcmVzaCIsInRlbmFudElkIjoiU0hFSU4iLCJzdWIiOiJzaGVpbl9hZGl0eWFyYW9yYmpAZ21haWwuY29tIiwiZXhwIjoxNzg4OTcyMDMwLCJpYXQiOjE3NzM0MjAwMzB9.dWHJzJycwCEF_sQwcfygrBd31rVrerLvxAP9-E2sa_bWENNI3To3fmA3lvOhHhDwdtPFvoxpeoS6a-8WVG8LjIXAB5C6qIC9nVIYE2iVhireyTUI3251-hJjm5hk_pEsQOklQKIsrKgm8F0CCppdISaW2lNUD6WC6lO8-Z5Z7HYQzF1F1JV4tEtYSc3ncf5jtWOWkpwz8J4cD1Sox52ndCRKUqgp7J4Jgyh-Xt4V5M1WHbUrsJIICai7Cpwl2g3Y_Dp-EDMDmuyrwFNbJCnaNuB4UBiSU1tiyzF6DjOIGwxZiwE326AxO5aNzIhORLcpwBVTJw4E3lJoTC6dPQv9Dw; M=SH9237708413; GUID=18f80a8b-972e-42e2-925a-a6ca4e080dd7; C=SH9237708413; customerType=Existing; cohortSegment=17,19,10; jioAdsFeatureVariant=true; storeTypes=shein; recentlyViewed=[{"id":"443327888_green","store":0},{"id":"443391939_pink","store":0},{"id":"443388638_beige","store":0},{"id":"443387232_lightblue","store":0},{"id":"443331909_green","store":0}]; bookingType=SHEIN; _gid=GA1.2.1478552207.1774027562; _ga_F1NJ1E2HJ2=GS2.1.s1774027586$o1$g0$t1774027586$j60$l0$h0; sessionId=sess_1774027597805_tvcwj3rv6; CT=ALLAHABAD; ST=UTTAR PRADESH; ZN=undefined; PG=; bm_ss=ab8e18ef4e; _gac_G-D6SVDYBNVW=1.1774034815.Cj0KCQjw4PPNBhD8ARIsAMo-icwE7fkWF2OmnI-QHa3Di0HaL61wlxU050MY-cOIGcQ9pTnDNrh2jDsaAjKoEALw_wcB; ak_bmsc=D8580895322A712D466D56EA14710C97~000000000000000000000000000000~YAAQP7sbuNFtf/ecAQAA2Q63DB/jrezV97xmcl6vMmxmzkEKOGnWv58yA/xUgxBo6ncjo7V3B1Mat7iCKIqXs7l9ZkPFPh1TQcN9NnuLOzQCRD6VV0UmB8RGFkO/4n/vu+PpWzRwHhX2m5PrYs/C6z9mc+Up9nr9t2VUwfBD/v9YYv3mq6rUenKfeZLMvHlj/f91v7ovFhn5Jkr4V2T9N++xyS41YrKsuHftkq+598kV+NwrExiowERuE4PuLTvqr/CXbJ4Mxh2yBi2ZvtabFfz6uBG+ssZgHbCc7CCORzVW5HDnQ7EWi9EkjiCp+qUG35dySB+JLJLjaMxIKFMYQNaNH0kSOsJlvC2hxY+MAh012LHewZ4mEx0LsepjF8JtufdPdUJlMNTj4sCWrEQf7PNMuxMbNgmqPn9mW5S5UpBa1XIv5CnW4sLi20Qgfd9PvjBERPbbeMA/3KK0slNB65MvaJfaRik1zK0IeV2aMC8+cfY=; customerType=Existing; _gcl_gs=2.1.k1$i1774034810$u6234225; _abck=58B8F7AB81B70722B3B58265D253A919~0~YAAQniHKFyxBygqdAQAAt/jgDA+24EV48vUA2IF7ksmf2cyH+XLJKVmUfMLCV1+1WF/3qT2E7pBwuFmULDvdJvudCgpqXu47FanJRmLqqjJeHal8Nud/h5dRBXPbom6GFyTfD2oEXpBk7bOgYHydZ4z9CKrxx4Y8Vq66ch/1qoFFbgoItwStdUGhR3T2JHbsdgeggzMMtvw7I8vU4sd6mgjuu8K0ARpwj8KUPiQnwIdc+nrwBm0sBesvVrbM+xVcEcF7z61yHZU4PYCHNfuVU3qHXcm4HOQQmLWHVDAygSFbIdvYuoGJYKxm3qac5w1d3vt4oFslueSWOdmin+FNLAVUkn5CuyN56WmGnGAT2WN1jNjo+AgEMC01hDRob63ca+l0bDa6ljoTwhw9gI2GE67upK0bUGozBN6oyp9Nv7UcLtYT/Iv7s8KdZJAp2zcbbuCt88+pESm9RwP6Lx6ufTxopWJmWIJBnAA5DYRpsC1WGH/oj7mUT1856yUdjYNHUDhNRm+vqP7gDkXvX4oPFA6ucI6F320O1XI75kfgzUTqkHYkO0RdMvJZ/HLMjJEwY9HK2Ap+FVfJX7jvtFTOEBOoH7c+DRVlyy/P4u0rmnB0L5b1AU19bHxdFbR0mvA6ttyrqn6/siE6zJq4gtEj8G0imj1ccCNA/bIRHBvQzuieLBq+omcwXlD7QEZBv2X5t86eTbNirUwfByK+1pKZ+2bDf8m9gVcVpb2s4nDM9ZDIa3GkG+oQRxDWZHkXzQAAdGP+oDZ0kr/Lv/+pTLxpNcIN8v0hcBX8rC0IQlHP5ikc3qw/EQdLAuroCJzUi/QrYltZsP9v115MkZdjRa5MOtqc/5DJ9qM8xqu/XqiknHKZ5wK6lYbdapGGZUkC5sMWX1yrzxo1MR87m8U6INhzxNnl2BBtockLbxvm7XRKJrpbeIaWTn9EWPDjqcQLlpw=~-1~-1~1774038415~AAQAAAAF%2f%2f%2f%2f%2f3q+xms5VxptrJqm1lmBHnnOlV6IwCkxgNLUiWZFFYDV1sTQrLXvmQNI7yZbAWAOvDPWqV+knw7R6CZ3GgQB55EY%2fUzxSbByRuCfRR3SWZLJKErHUx7zLNKiFoI3IoNVpMufeYQ%3d~-1; bm_so=3BDAEFD58230B2F3ABAE6EF7BE6FC9C528AA0D741E451697D86C3BA51CC8AE91~YAAQniHKFy5BygqdAQAAt/jgDAc3dsgbP/QAMB7v15A6GnwaRIBw3jovkZIMZ6UF/w8W4VbqAtGpK345RCPu8So0Cf6DajaxDhnP9A8sdaU4N6I8NZ5aFJeo4A77NwCPyfAlERZJxasBMbE+xzpbXpgVmLxXoM8QacT+0sFth+t9b9LV6VJpXdWwSWaNs9O9JbP/1Ht5pEzzh+s5qjRDbYrlbto7Rg9qH+cdibrHWEKthGfu8p3GDTyn2tggj8KsY9SHvfAVjqAjUUo/rEYJ0DP4nkDHc/ax0gomUHLeRayNC4afk5OeVUEQCh8wRO+zvC9ZQ2mH1QmG+AFFbVKweab5ZXSeiI28obRD7+iFpbSMiufAzNhIojg5gLlN3SuRwjQ0qIOjcciKO+Ts86qmPYQTgpA46YzmYG8PsSoTCxDtL2b01qMrRNhwJzDJP3slaPm7pMPoesj67XhikDkLbsk=; bm_s=YAAQniHKF69BygqdAQAAYw/hDAXNmku0A+PE0FgDyOwKH1PfwyeX5p6Neduuh2b6XRfg7ScO8oY2jw08i0EH/IzuJXjDuCg6iRqg2ir4P4l3NagadHfI9Fr5izsETanCF+GTs8r0UF/vGOOKYWewySGTj5iw9UmnXrtzoxULx/aiCZiJfY7AOLoYnlo5szXrAOEOScSe0zJZe4cvCgEHKn4HnjNPDpbGQwvUU+XyCXZOSdFYGMRGCIW86yj8FpivhtI9G1SWhpxTeEVca0ZsE7kza77C0tF4hsu/ykKFOixewbE62/lf+I0yHkdTZ8oX07CYIH450rUgcdFBhm+hPKR8Zn9WLtFqqf1fjxRqqIB5gfxOhJ1hIbXiMAwTQVyM06cP/7cWB84tZw1r0PTy1bxuODOo9xuWGJvbZEvXY/snydJ8R7hNepVOAb3jm9tZ5xVH8FQ1qhzjGkqDalMmMIJiwIjukhFC/85LZ01dbegy4LNVJu3V4XssWrdrB4eJ/gvt5QXdRgQsS0U6Gqr0CVYuXqwKhxsXVfRAJsg5KbcOYE3ulVa2WYyUuBGhMsDCcSejvEIvJVDHiXXz1xnTyB8WsgTXWTSOs3vmcsXU9g0dTXHyy5v2iDX/BYW7TnTgLWeOBnjqITlBejWoThIOmB3QPHYEvQbv69L3S3GQhwkH6iIruUqx5DybuIUkN/Z5uYZit+w+5c94+b1hLC9eGtcaiotHxIiUpaJQQyg0GRMVpMiFNX084K6ohpUli5rNfN+BimHqcsoJVireCSJHMOpE0ZMFRD+1XVuEZeCfABrbcPH1wOb/RJRSry/Fw1+8KQa6+wHO2zn+iYifHDaVfW81TktmqmZsutclLNSZeIyDiWTy+3AN/N8+77IjGkdt7TV4WJX3ON6DSyiX9txl4cItki5iXJ6fCGHz5qlgfUt3Tpresui4yRooedkV05QFyVwK1gRhEd37IA==; bm_sz=E90109D1519722015412C7BEE841DBD2~YAAQniHKF7FBygqdAQAAYw/hDB9rYzvYPoKgGxEuTGDIu4PNKV5Dh8HmAoOx9ByK1w3TgkmWWZiKpPynqzu9mG/8aXkejgbQgEcgGRe2I0D3pKJRUfZv12rf8xxUXLEhRSdrxBPFhiHGMGXu4xk3zpvnNlijRWQ4dxZtkoXdYr0PwP3QE56sxMnCpuvqvQDHQVNA9a3tNekNqYcvRLuagDxPcgFAsQFaOYdo36iwV9sQyo2y3G1p5ThbJKo03Dc2SZfEldEu7Y6j3ivFsY6/EeWVZJBwy37WnFdiN3x9P0cmvV5JFaA+tfiQkM8nNpqCUhnSS9ek46DLGakZlHGCgmY9kZsGDdpCbedDSt5XBJQSQbuszgtgzfhgt6wtw0j5SUeH++E8WnU2MWbRXt6YcgiRfNSNJWk3rJ8apxQqzEj2J8y7I++/W0jOfYWo2mopBycneoAI+zSrQp7qXP2Vo+FwunZCTWNJkiMUCd2U6KMpwo7z8Gkzl8vAUhMomnFXds8qXv3fz5YabN133kVVjwmyQ5atgDwu~3748933~3487029; bm_sv=02E6A986B065A1303EACE9ED0272A381~YAAQniHKF9BBygqdAQAATBbhDB+tvR6Jt9na6as8C6VWx6HDQPK/j+o3pclJxglnchBh0knXw8a8k0MEKNiQ3H9p3kZwmR9qtcQSYXcpSJ/poFErwhpE9l0jN7dD7J7/QEQgYQ2eZzEIdzJMYIX9vXv++vl4DspDnHC51f9ivhU1uAGn43XCTlZspsX0tqoA7gqiW8P3ZBe97+WUtFf7ULnpaWIJoCJg5TLnUH0aB2hinqNppIvzkv09AMBmCJ4VjYZ5qQ==~1; _gcl_aw=GCL.1774037574.Cj0KCQjw4PPNBhD8ARIsAMo-icwE7fkWF2OmnI-QHa3Di0HaL61wlxU050MY-cOIGcQ9pTnDNrh2jDsaAjKoEALw_wcB; _ga=GA1.1.176576588.1773918703; bm_lso=3BDAEFD58230B2F3ABAE6EF7BE6FC9C528AA0D741E451697D86C3BA51CC8AE91~YAAQniHKFy5BygqdAQAAt/jgDAc3dsgbP/QAMB7v15A6GnwaRIBw3jovkZIMZ6UF/w8W4VbqAtGpK345RCPu8So0Cf6DajaxDhnP9A8sdaU4N6I8NZ5aFJeo4A77NwCPyfAlERZJxasBMbE+xzpbXpgVmLxXoM8QacT+0sFth+t9b9LV6VJpXdWwSWaNs9O9JbP/1Ht5pEzzh+s5qjRDbYrlbto7Rg9qH+cdibrHWEKthGfu8p3GDTyn2tggj8KsY9SHvfAVjqAjUUo/rEYJ0DP4nkDHc/ax0gomUHLeRayNC4afk5OeVUEQCh8wRO+zvC9ZQ2mH1QmG+AFFbVKweab5ZXSeiI28obRD7+iFpbSMiufAzNhIojg5gLlN3SuRwjQ0qIOjcciKO+Ts86qmPYQTgpA46YzmYG8PsSoTCxDtL2b01qMrRNhwJzDJP3slaPm7pMPoesj67XhikDkLbsk=~1774037577187; _ga_D6SVDYBNVW=GS2.1.s1774037560$o6$g1$t1774037612$j8$l0$h735614410"""
+# --- SAARE PRODUCTS KI LIST ---
+PRODUCT_LINKS = [
+    "https://www.sheinindia.in/p/443385135032",
+    "https://www.sheinindia.in/p/443390714004",
+    "https://www.sheinindia.in/p/443381553013",
+    "https://www.sheinindia.in/p/443390884008",
+    "https://www.sheinindia.in/p/443391939014",
+    "https://www.sheinindia.in/p/443390881012",
+    "https://www.sheinindia.in/p/443382539024",
+    "https://www.sheinindia.in/p/443391650013",
+    "https://www.sheinindia.in/p/443386275012",
+    "https://www.sheinindia.in/p/443393028017",
+    "https://www.sheinindia.in/p/443389781002",
+    "https://www.sheinindia.in/p/443383954007",
+    "https://www.sheinindia.in/p/443383392010",
+    "https://www.sheinindia.in/p/443385416012",
+    "https://www.sheinindia.in/p/443388018014",
+    "https://www.sheinindia.in/p/443382000006",
+    "https://www.sheinindia.in/p/443392033002",
+    "https://www.sheinindia.in/p/443316334002",
+    "https://sheinindia.onelink.me/ZrSt/uiuzq9hx",
+    "https://www.sheinindia.in/shein-shein-fly-with-button-closure-mid-wash-distressed-jeans/p/443384920_darkblue",
+    "https://www.sheinindia.in/shein-shein-full-length-fly-with-button-closure-cargo-jeans/p/443384264_darkolive",
+    "https://www.sheinindia.in/shein-shein-full-length-fly-with-button-closure-cargo-jeans/p/443384264_ltgrey",
+    "https://www.sheinindia.in/shein-shein-ankle-length-semi-elasticated-waist-pant/p/443381959_cream",
+    "https://www.sheinindia.in/shein-shein-full-length-fly-with-button-closure-mid-wash-jeans/p/443390726_charcoal",
+    "https://www.sheinindia.in/shein-shein-full-length-fly-with-button-closure-clean-wash-jeans/p/443383975_olivegreen",
+    "https://www.sheinindia.in/shein-shein-fly-with-button-closure-drawstring-detail-panelled-jeans/p/443383003_midblue",
+    "https://www.sheinindia.in/shein-shein-full-length-typographic-placement-print-straight-track-pants/p/443384227_black",
+    "https://www.sheinindia.in/shein-shein-short-sleeves-graphic-back-print-crew-tshirt/p/443387455_black",
+    "https://www.sheinindia.in/shein-shein-relaxed-fit-drop-shoulder-typographic-back-print-crew-tshirt/p/443330475_white",
+    "https://www.sheinindia.in/shein-shein-short-sleeves-graphic-back-print-crew-tshirt/p/443389791_black",
+    "https://www.sheinindia.in/shein-shein-medium-length-full-sleeve-sweatshirt/p/443318638_beige",
+    "https://www.sheinindia.in/shein-shein-panelled-light-wash-carpenter-style-cargo-jeans/p/443383999_midblue",
+    "https://www.sheinindia.in/shein-shein-relaxed-fit-short-sleeve-cuban-collar-overlay-panel-pocket-shirt/p/443327677_coffee",
+    "https://www.sheinindia.in/shein-shein-medium-length-spread-collar-full-sleeve-checked-shirt/p/443391936_red",
+    "https://www.sheinindia.in/shein-shein-short-sleeve-striped-textured-polo-tshirt/p/443390489_navyblue",
+    "https://www.sheinindia.in/shein-shein-drop-shoulder-stranger-things-back-print-crew-tshirt/p/443387042_navy",
+    "https://www.sheinindia.in/shein-shein-oversized-fit-drop-shoulder-typographic-back-print-crew-tshirt/p/443331617_black",
+    "https://www.sheinindia.in/shein-shein-medium-length-spread-collar-full-sleeve-checked-shirt/p/443391936_khaki",
+    "https://www.sheinindia.in/shein-shein-medium-length-spread-collar-striped-shirt/p/443391935_blue",
+    "https://www.sheinindia.in/shein-shein-medium-length-short-sleeve-buttoned-polo-tshirt/p/443385948_grey",
+    "https://www.sheinindia.in/shein-shein-medium-length-short-sleeve-self-design-polo-tshirt/p/443394851_navyblue",
+    "https://www.sheinindia.in/shein-shein-drop-shoulder-graphic-back-print-crew-tshirt/p/443382800_black",
+    "https://www.sheinindia.in/shein-shein-drop-shoulder-front--back-graphic-print-crew-tshirt/p/443382820_black",
+    "https://www.sheinindia.in/shein-shein-house-of-dragon-chest-print-crew-neck-sweatshirt/p/443388931_offwhite",
+    "https://www.sheinindia.in/shein-shein-medium-length-zipped-collar-ribbed-tshirt/p/443390443_black",
+    "https://www.sheinindia.in/shein-shein-short-sleeve-contrast-trim-colour-blocked-polo-tshirt/p/443386543_navy",
+    "https://www.sheinindia.in/shein-shein-short-sleeve-contrast-collar-ribbed-polo-tshirt/p/443385515_seagreen",
+    "https://www.sheinindia.in/shein-shein-short-sleeve-colour-block-striped-polo-tshirt/p/443382768_black",
+    "https://www.sheinindia.in/shein-shein-short-sleeve-contrast-striped-polo-tshirt/p/443383304_black",
+    "https://www.sheinindia.in/shein-shein-short-sleeve-colour-block-striped-polo-tshirt/p/443386542_pistagreen",
+    "https://www.sheinindia.in/shein-shein-drop-shoulder-numeric-chest-print-crew-tshirt/p/443387444_black",
+    "https://www.sheinindia.in/shein-shein-relaxed-fit-drop-shoulder-typographic-chest-print-sweatshirt/p/443383710_brown",
+    "https://www.sheinindia.in/shein-shein-drop-shoulder-short-sleeve-textured-crew-tshirt/p/443387638_blue",
+    "https://www.sheinindia.in/shein-shein-relaxed-fit-drop-shoulder-typographic-chest-print-crew-sweatshirt/p/443381346_maroon",
+    "https://www.sheinindia.in/shein-shein-raglan-sleeve-typographic-chest-print-crew-tshirt/p/443382529_navy"
+]
 
-def send_telegram(message):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}
+# --- ANTI-BLOCK USER AGENTS ---
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Mobile Safari/537.36'
+]
+
+def send_telegram_msg(text):
     try:
-        requests.post(url, json=payload, timeout=10)
-    except:
-        pass
-
-def check_wishlist():
-    url = "https://www.sheinindia.in/api/wishlist/getwishlist?currentPage=1&pageSize=100"
-    
-    clean_cookie = COOKIE_STR.strip()
-    bearer_token = ""
-    if "A=" in clean_cookie:
-        bearer_token = clean_cookie.split("A=")[1].split(";")[0]
-
-    # Masking bot behavior with better headers
-    headers = {
-        'authority': 'www.sheinindia.in',
-        'accept': 'application/json, text/plain, */*',
-        'authorization': f'Bearer {bearer_token}',
-        'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
-        'referer': 'https://www.sheinindia.in/wishlist',
-        'x-referer': 'https://www.sheinindia.in/wishlist',
-        'accept-language': 'en-US,en;q=0.9',
-        'cookie': clean_cookie
-    }
-
-    try:
-        print(f"[{time.strftime('%H:%M:%S')}] 🕵️ Scanning Wishlist...")
-        # Adding a small random delay to mimic human speed
-        time.sleep(random.uniform(1.5, 3.5))
-        response = requests.get(url, headers=headers, timeout=20)
-        
-        if response.status_code == 200:
-            data = response.json()
-            items = data.get('info', {}).get('products', []) or data.get('info', {}).get('goodsList', [])
-            print(f"✅ Success! Found {len(items)} items.")
-            # ... Rest of the logic ...
-        else:
-            print(f"❌ Error {response.status_code}. SHEIN block kar raha hai.")
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        requests.post(url, data={"chat_id": CHAT_ID, "text": text}, timeout=15)
     except Exception as e:
-        print(f"⚠️ Error: {e}")
+        print("❌ Telegram Message Failed:", e)
+
+def check_stock_and_price(url, session):
+    headers = {
+        'User-Agent': random.choice(USER_AGENTS),
+        'Accept-Language': 'en-US,en;q=0.9'
+    }
+    try:
+        r = session.get(url, headers=headers, timeout=15)
+        html_text = r.text.lower()
+        
+        # Out of stock check
+        out_of_stock = "out of stock" in html_text or "sold out" in html_text
+        
+        if r.status_code == 200 and not out_of_stock:
+            # Price dhoondhne ki koshish
+            price_match = re.search(r'₹\s*([0-9,]+)', r.text)
+            price = price_match.group(0) if price_match else "Site pe check karo"
+            
+            msg = f"🚀 **FAST STOCK ALERT!**\n\nBhai jaldi order kar, item wapas aa gaya!\n💰 Price: {price}\n🔗 Link: {url}"
+            return msg
+            
+    except Exception as e:
+        pass # Ignore slow connection errors so bot doesn't stop
+    return None
 
 if __name__ == "__main__":
-    send_telegram("🚀 <b>Bot Restarted with Anti-Block Headers!</b>")
+    print("🚀 Fast & Stealth Monitoring Started...")
+    send_telegram_msg("Bhai, nayi ID ke sath aapka bot LIVE ho gaya hai! Ab ye saare links par nazar rakhega.")
+
+    session = requests.Session()
+
     while True:
-        check_wishlist()
-        time.sleep(random.randint(180, 360)) # Thoda lamba gap taaki suspicious na lage
+        print("🔍 Checking all products...")
+        for url in PRODUCT_LINKS:
+            alert = check_stock_and_price(url, session)
+            
+            if alert:
+                send_telegram_msg(alert)
+                print(f"✅ Alert sent for: {url}")
+                
+            # Har link check karne ke beech 1-3 second ka gap (Anti-Block)
+            time.sleep(random.uniform(1, 3))
+        
+        print("⏳ Ek poora round khatam. 2 minute baad dubara check karunga...")
+        # Poori list check hone ke baad 2 minute (120 seconds) rukega
+        time.sleep(120)
+        
