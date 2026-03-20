@@ -7,8 +7,9 @@ import re
 TOKEN = "8743319750:AAE6To6hX2b2gzG2PBTmfQDt1jPYGcqUdWI"
 CHAT_ID = "6814671965"
 
-# --- SAARE PRODUCTS KI LIST ---
+# --- SAARE PRODUCTS KI LIST (Naya Link Added) ---
 PRODUCT_LINKS = [
+    "https://sheinindia.onelink.me/ZrSt/0pqodv30",
     "https://www.sheinindia.in/p/443385135032",
     "https://www.sheinindia.in/p/443390714004",
     "https://www.sheinindia.in/p/443381553013",
@@ -102,12 +103,13 @@ def check_stock_and_price(url, session):
             return msg
             
     except Exception as e:
-        pass # Ignore slow connection errors so bot doesn't stop
+        pass 
     return None
 
 if __name__ == "__main__":
     print("🚀 Fast & Stealth Monitoring Started...")
-    send_telegram_msg("Bhai, nayi ID ke sath aapka bot LIVE ho gaya hai! Ab ye saare links par nazar rakhega.")
+    # Ise aap chaho toh comment kar sakte ho agar baar baar restart par message nahi chahiye
+    # send_telegram_msg("Bhai, naya link add ho gaya hai! Monitoring continue hai.")
 
     session = requests.Session()
 
@@ -120,10 +122,8 @@ if __name__ == "__main__":
                 send_telegram_msg(alert)
                 print(f"✅ Alert sent for: {url}")
                 
-            # Har link check karne ke beech 1-3 second ka gap (Anti-Block)
             time.sleep(random.uniform(1, 3))
         
-        print("⏳ Ek poora round khatam. 2 minute baad dubara check karunga...")
-        # Poori list check hone ke baad 2 minute (120 seconds) rukega
+        print("⏳ Round complete. Waiting 2 minutes...")
         time.sleep(120)
         
