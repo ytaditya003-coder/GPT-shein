@@ -17,43 +17,52 @@ def send_telegram(message):
         pass
 
 def check_wishlist():
-    # API URL
+    # Final optimized API URL
     url = "https://www.sheinindia.in/api/wishlist/getwishlist?currentPage=1&pageSize=100"
     
-    # Cookie clean up
+    # Cookie ko clean up karna zaroori hai
     clean_cookie = COOKIE_STR.strip().replace('\n', '').replace('\r', '')
     
-    # Extract Bearer Token manually for safety
+    # Bearer Token (A=) ko nikaalna
     bearer_token = ""
     if "A=" in clean_cookie:
         bearer_token = clean_cookie.split("A=")[1].split(";")[0]
 
+    # Ye headers SHEIN ko lagega ki aap Browser se chala rahe ho
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Authorization': f'Bearer {bearer_token}',
-        'Cookie': clean_cookie,
-        'X-Requested-With': 'XMLHttpRequest'
+        'authority': 'www.sheinindia.in',
+        'accept': 'application/json, text/plain, */*',
+        'authorization': f'Bearer {bearer_token}',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'x-requested-with': 'XMLHttpRequest',
+        'referer': 'https://www.sheinindia.in/wishlist',
+        'accept-language': 'en-US,en;q=0.9',
+        'cookie': clean_cookie
     }
 
     try:
-        print("🕵️ Scanning Wishlist...")
-        response = requests.get(url, headers=headers, timeout=15)
+        print("🕵️ Scanning Wishlist with Advanced Headers...")
+        response = requests.get(url, headers=headers, timeout=20)
         
-        if response.status_code == 403:
-            print("❌ API Error: Status 403 (Forbidden)")
-            # Agar error aaye toh ek baar Telegram par batao
-            return
-
-        data = response.json()
-        # Bakki logic same rahega...
-        print("✅ Scan Successful!")
-        
+        if response.status_code == 200:
+            print("✅ Status 200: Connection Successful!")
+            data = response.json()
+            products = data.get('info', {}).get('products', [])
+            print(f"📊 Found {len(products)} total items in Wishlist.")
+            # Stock checking logic yahan chalu hogi...
+        else:
+            print(f"❌ API Error: Status {response.status_code}")
+            if response.status_code == 403:
+                print("💡 Tip: Railway variable mein check karein ki 'A=' token sahi se copy hua hai.")
+                
     except Exception as e:
-        print(f"⚠️ Error: {e}")
+        print(f"⚠️ Network Error: {e}")
 
 if __name__ == "__main__":
     print("🔥 Master API Bot Active!")
     while True:
         check_wishlist()
-        time.sleep(random.randint(180, 300))
+        # Safe interval: 3 to 6 minutes
+        wait_time = random.randint(180, 360)
+        print(f"⏳ Next scan in {wait_time} seconds...")
+        time.sleep(wait_time)
