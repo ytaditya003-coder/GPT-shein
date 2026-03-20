@@ -92,4 +92,4 @@ if __name__ == "__main__":
         wait = random.randint(180, 420)
         print(f"Next scan in {wait} seconds...")
         time.sleep(wait)
-                
+        
