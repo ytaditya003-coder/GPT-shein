@@ -2,6 +2,7 @@ import os
 import time
 import random
 import requests
+import re
 from bs4 import BeautifulSoup
 
 # Variables
@@ -9,68 +10,69 @@ TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('CHAT_ID')
 URLS_STR = os.getenv('PRODUCT_URLS')
 
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"
-]
-
 def send_alert(message):
-    api_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}
+    try: requests.post(url, json=payload)
+    except: pass
+
+def is_actually_in_stock(url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+        'Accept-Language': 'en-US,en;q=0.9'
+    }
     try:
-        requests.post(api_url, json=payload)
+        # 1. Page fetch karna (Redirects allow karke)
+        response = requests.get(url, headers=headers, timeout=20, allow_redirects=True)
+        html = response.text
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # 2. Keywords check (Zyada strict)
+        # SHEIN mobile site par aksar "Sold Out" ya "Coming Soon" niche buttons mein hota hai
+        lowercase_html = html.lower()
+        hidden_keywords = ["sold out", "out of stock", "item_status\":0", "is_on_sale\":false", "not_available"]
+        
+        for word in hidden_keywords:
+            if word in lowercase_html:
+                return False, None
+        
+        # 3. Price nikalna
+        price = "Check Link"
+        price_match = re.search(r'"amount":"(\d+\.?\d*)"', html)
+        if price_match:
+            price = f"₹{price_match.group(1)}"
+            
+        # 4. Final Check: Agar page par 'Add to Bag' ya 'Buy Now' dikh raha hai toh hi alert bhejo
+        if "add to bag" in lowercase_html or "buy now" in lowercase_html:
+            return True, price
+            
+        return False, None
     except Exception as e:
-        print(f"Telegram Error: {e}")
+        print(f"Error checking {url}: {e}")
+        return False, None
 
-def check_stock():
-    if not URLS_STR: return
-    urls = [u.strip() for u in URLS_STR.split(',') if u.strip()]
-    
-    for url in urls:
-        headers = {'User-Agent': random.choice(USER_AGENTS)}
-        try:
-            print(f"Checking: {url}")
-            response = requests.get(url, headers=headers, timeout=15)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # --- LOGIC START ---
-            # 1. Page text check
-            full_text = response.text.lower()
-            
-            # SHEIN ke common 'Out of Stock' keywords
-            out_of_stock_keywords = [
-                "sold out", "out of stock", "item is not available", 
-                "unavailable", "coming soon", "notify me"
-            ]
-            
-            # Check if any keyword exists
-            is_sold_out = any(word in full_text for word in out_of_stock_keywords)
-            
-            # 2. Meta Tag Check (Price agar 0 hai ya tag missing hai toh aksar sold out hota hai)
-            price_tag = soup.find("meta", property="product:price:amount")
-            price = price_tag.get("content") if price_tag else "Check Link"
+print("🚀 Mega Stealth Bot Started for SHEIN!")
 
-            # ALERT TABHI JAYEGA JAB: 
-            # - Keywords mein 'Sold Out' na ho
-            # - Price 0 na ho (Kuch cases mein price gayab ho jati hai)
-            if not is_sold_out:
+while True:
+    if URLS_STR:
+        urls = [u.strip() for u in URLS_STR.split(',') if u.strip()]
+        for url in urls:
+            print(f"Scanning: {url}")
+            in_stock, price = is_actually_in_stock(url)
+            
+            if in_stock:
                 msg = (
-                    f"🚨 <b>ITEM IN STOCK!</b> 🚨\n\n"
-                    f"💰 <b>Price:</b> ₹{price}\n"
-                    f"🔗 <a href='{url}'>Abhi Buy Karein</a>"
+                    f"✨ <b>PROUDCT BACK IN STOCK!</b> ✨\n\n"
+                    f"💰 <b>Price:</b> {price}\n"
+                    f"🔗 <a href='{url}'>JALDI KHARIDO!</a>\n\n"
+                    f"<i>Bot is running in Super-Fast mode...</i>"
                 )
                 send_alert(msg)
-                print("Alert Sent!")
-            else:
-                print("Status: Still Sold Out.")
-
-        except Exception as e:
-            print(f"Error: {e}")
-        
-        time.sleep(random.randint(5, 10))
-
-print("🚀 Bot Fix Applied! Starting monitoring...")
-while True:
-    check_stock()
-    time.sleep(random.randint(45, 90))
+                print("!!! ALERT SENT !!!")
+            
+            # Har link ke baad thoda gap
+            time.sleep(random.randint(5, 8))
+            
+    # Cycle gap: 1 minute (Fastest for 1-2 min stock windows)
+    time.sleep(60)
     
