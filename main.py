@@ -2,77 +2,94 @@ import os
 import time
 import random
 import requests
-from bs4 import BeautifulSoup
+import json
 
+# Railway Variables
 TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-COOKIE = os.getenv('SHEIN_COOKIE')
-WISHLIST_URL = os.getenv('WISHLIST_URL', 'https://www.sheinindia.in/wishlist')
+COOKIE_STR = os.getenv('SHEIN_COOKIE')
 
-def send_alert(message):
+# API Settings (From your file)
+WISHLIST_API = "https://www.sheinindia.in/api/wishlist/getwishlist"
+
+def send_telegram(message):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML"}
+    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
     try:
         requests.post(url, json=payload, timeout=10)
-    except: pass
+    except:
+        pass
 
-def check_wishlist():
+def get_wishlist():
+    # Cookie string ko format mein badalna
+    cookies = {}
+    for pair in COOKIE_STR.split(';'):
+        if '=' in pair:
+            key, value = pair.strip().split('=', 1)
+            [span_2](start_span)cookies[key] = value[span_2](end_span)
+
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 OPR/108.0.0.0',
-        'Cookie': COOKIE,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://www.sheinindia.in/',
-        'Connection': 'keep-alive'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        [span_3](start_span)'Accept': 'application/json',[span_3](end_span)
+        [span_4](start_span)'Referer': 'https://www.sheinindia.in/',[span_4](end_span)
+        [span_5](start_span)'Authorization': f'Bearer {cookies.get("A", "")}'[span_5](end_span)
     }
 
-    print(f"[{time.strftime('%H:%M:%S')}] 🕵️ Deep Scanning Wishlist...")
-    
+    print(f"[{time.strftime('%H:%M:%S')}] 🚀 API Scanning Started...")
+
     try:
-        response = requests.get(WISHLIST_URL, headers=headers, timeout=30)
-        
-        if "login" in response.url.lower():
-            print("❌ Alert: Cookie Invalid! Refresh Cookie from Laptop.")
-            return
-
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Sabhi tarah ke links dhoondna jo product ho sakte hain
-        all_items = soup.find_all(['div', 'section', 'li'], class_=lambda x: x and ('item' in x.lower() or 'product' in x.lower()))
-        
-        if not all_items:
-            # Last resort: try getting all links
-            all_items = soup.select('a[href*="/p-"]')
-
-        count = len(all_items)
-        if count == 0:
-            print("❓ Still 0 items. Checking if page content is blocked...")
-            # Debugging: Print first 200 chars of page
-            # print(response.text[:200]) 
-            return
-
-        print(f"✅ Scanning {count} potential items...")
-
-        for item in all_items:
-            text_content = item.get_text().lower()
+        # API se data nikalna (Page 0 se 5 tak check karega)
+        all_in_stock = []
+        for page in range(5): 
+            [span_6](start_span)params = {'currentPage': page, 'pageSize': 20}[span_6](end_span)
+            response = requests.get(WISHLIST_API, params=params, cookies=cookies, headers=headers, timeout=15)
             
-            # Agar item mein 'out of stock' NAHI likha hai, toh alert bhejo
-            if "out of stock" not in text_content and "sold out" not in text_content:
-                # Sirf tab alert bhejo agar item mein price ya product jaisa kuch dikhe
-                if "₹" in text_content or "off" in text_content:
-                    print("✨ Stock Found!")
-                    send_alert(f"🚀 <b>STOCK ALERT!</b>\n\nEk item stock mein dikh raha hai!\n\n🔗 <a href='{WISHLIST_URL}'>Open Wishlist</a>")
-                    time.sleep(5) # Thoda gap
-                    break # Ek baar mein ek alert kaafi hai
+            if response.status_code != 200:
+                break
+
+            data = response.json()
+            [span_7](start_span)products = data.get('products', [])[span_7](end_span)
+            
+            if not products:
+                break
+
+            for p in products:
+                [span_8](start_span)name = p.get('name', 'SHEIN Item')[span_8](end_span)
+                # Stock level check karna
+                in_stock = False
+                size_info = ""
+                
+                [span_9](start_span)if 'variantOptions' in p:[span_9](end_span)
+                    [span_10](start_span)for v in p['variantOptions']:[span_10](end_span)
+                        [span_11](start_span)if v.get('stock', {}).get('stockLevelStatus') == 'inStock':[span_11](end_span)
+                            in_stock = True
+                            [span_12](start_span)size = next((q['value'] for q in v.get('variantOptionQualifiers', []) if q['qualifier'] == 'size'), 'N/A')[span_12](end_span)
+                            size_info += f"[{size}] "
+
+                if in_stock:
+                    all_in_stock.append(f"✨ *{name}*\nSizes: {size_info}")
+
+        return all_in_stock
 
     except Exception as e:
         print(f"Error: {e}")
+        return []
 
 if __name__ == "__main__":
-    print("🚀 Master Stealth Bot Active!")
+    print("🔥 API Stealth Monitor Active!")
+    last_seen = set()
+
     while True:
-        check_wishlist()
-        wait = random.randint(180, 400)
+        items = get_wishlist()
+        print(f"Found {len(items)} items in stock.")
+
+        for item in items:
+            if item not in last_seen:
+                send_telegram(f"🔔 *IN-STOCK ALERT!*\n\n{item}\n\n🛒 [Open Wishlist](https://www.sheinindia.in/wishlist)")
+                last_seen.add(item)
+
+        # 3 to 7 minutes gap (Safe mode)
+        wait = random.randint(180, 420)
         print(f"Next scan in {wait} seconds...")
         time.sleep(wait)
-        
+                
