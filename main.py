@@ -1,49 +1,48 @@
-import requests
-from bs4 import BeautifulSoup
-import time
 import os
+import time
+import requests
 
+# 1. Variables Load ho rahe hain
 TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('CHAT_ID')
-PRODUCT_URLS_STR = os.getenv('PRODUCT_URLS')
+URLS_STR = os.getenv('PRODUCT_URLS')
 
-# Links ko list mein badalna
-PRODUCT_URLS = [url.strip() for url in PRODUCT_URLS_STR.split(',') if url.strip()]
-
-def send_telegram_message(message):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message}
+def send_test_message(msg):
+    # Telegram API ko call karne ka tarika
+    api_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {"chat_id": CHAT_ID, "text": msg}
     try:
-        requests.post(url, json=payload)
+        r = requests.post(api_url, json=payload)
+        # Logs mein dikhega ki Telegram ne kya bola
+        print(f"--- Telegram Status: {r.status_code} ---")
+        print(f"--- Response Detail: {r.text} ---")
+        return r.status_code
     except Exception as e:
-        print(f"Error sending message: {e}")
+        print(f"--- Connection Error: {e} ---")
+        return None
 
-def check_stock(url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
-    }
-    try:
-        response = requests.get(url, headers=headers, timeout=15)
-        soup = BeautifulSoup(response.content, 'html.parser')
-        content = soup.get_text().lower()
-        if "sold out" not in content and "out of stock" not in content:
-            return True
-        return False
-    except:
-        return False
+print("Checking Variables...")
+print(f"Target Chat ID: {CHAT_ID}")
 
-# Sabse pehle /start ka reply dega
-send_telegram_message("sunn rha behra nahi hu mai")
+# Bot start hote hi sabse pehle ye chalega
+status = send_test_message("🔔 TEST: Bot start ho gaya hai! Agar ye mila toh connection OK hai.")
 
-print(f"Bot Active! Monitoring {len(PRODUCT_URLS)} products...")
+if status == 200:
+    print("SUCCESS: Message sent to Telegram!")
+else:
+    print("FAILURE: Message nahi gaya. Logs upar check karein.")
 
-while True:
-    for url in PRODUCT_URLS:
-        if check_stock(url):
-            send_telegram_message(f"🚨 STOCK ALERT! 🚨\n\nItem is BACK! Jaldi check karo:\n{url}")
-            # Stock milne par list se hata sakte hain ya rehne dein (abhi rehne diya hai)
-        time.sleep(15)  # Har product ke beech delay
-    
-    print("Cycle complete. Sleeping for 5 minutes...")
-    time.sleep(300)
-    
+# Baki ka monitoring logic
+if URLS_STR:
+    urls = [u.strip() for u in URLS_STR.split(',') if u.strip()]
+    while True:
+        for url in urls:
+            print(f"Scanning: {url}")
+            try:
+                res = requests.get(url, timeout=10)
+                if "Sold Out" not in res.text and "Out of Stock" not in res.text:
+                    send_test_message(f"🚨 STOCK ALERT!\n{url}")
+            except:
+                print("Error checking this link.")
+        time.sleep(300)
+        
