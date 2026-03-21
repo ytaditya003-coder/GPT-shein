@@ -7,7 +7,7 @@ from datetime import datetime
 TOKEN = "8743319750:AAE6To6hX2b2gzG2PBTmfQDt1jPYGcqUdWI"
 CHAT_ID = "6814671965"
 
-# NEW LINKS ONLY (Anti-Duplicate Enabled)
+# Nayi Clean Links
 PRODUCT_LINKS = [
     "https://www.sheinindia.in/p/443385135032",
     "https://www.sheinindia.in/p/443390714004",
@@ -21,14 +21,14 @@ PRODUCT_LINKS = [
 
 FINAL_LINKS = list(set(PRODUCT_LINKS))
 
-# GHOST MODE HEADERS
+# STEALTH USER AGENTS
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1'
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Mobile/15E148 Safari/604.1'
 ]
 
-def get_headers():
+def get_stealth_headers():
     return {
         'User-Agent': random.choice(USER_AGENTS),
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -36,47 +36,45 @@ def get_headers():
         'DNT': '1',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Cache-Control': 'max-age=0'
     }
 
 def monitor():
-    print(f"👻 Anti-Ghost Mode & Nitro ON | Tracking {len(FINAL_LINKS)} Items")
+    print(f"🕵️ Ultra-Stealth Mode Active | Tracking {len(FINAL_LINKS)} Items")
     session = requests.Session()
     
     while True:
-        random.shuffle(FINAL_LINKS) # Pattern bypass
+        random.shuffle(FINAL_LINKS) # Har baar order badlega
         
         for url in FINAL_LINKS:
             try:
-                # Ghost Request
-                res = session.get(url, headers=get_headers(), timeout=15)
+                headers = get_stealth_headers()
+                res = session.get(url, headers=headers, timeout=20)
+                
+                now = datetime.now().strftime('%H:%M:%S')
                 
                 if res.status_code == 200:
                     html = res.text.lower()
-                    # Check if 'Add to Cart' or 'In Stock' indicators are present
-                    if "add to cart" in html or "buy now" in html or "quickship" in html:
-                        print(f"🔥 NITRO ALERT: Item In Stock! -> {url}")
-                        msg = f"🚀 **NITRO STOCK ALERT!**\n\nProduct is available now!\nLink: {url}\nTime: {datetime.now().strftime('%H:%M:%S')}"
+                    if "add to cart" in html or "buy now" in html:
+                        print(f"[{now}] 🔥 STOCK FOUND: {url}")
+                        msg = f"✅ **STOCK ALERT!**\n\nItem is available!\nLink: {url}"
                         requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
                                       data={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"})
-                        # Extra sleep after finding stock to avoid spamming
-                        time.sleep(10)
+                        time.sleep(15) # Found ke baad thoda break
                     else:
-                        print(f"[{datetime.now().strftime('%H:%M:%S')}] Checking... OOS")
+                        print(f"[{now}] Checking... Still Out of Stock")
                 
                 elif res.status_code == 403:
-                    print("⚠️ Ghost Mode Compromised (403). Changing IP/Waiting...")
-                    time.sleep(300) # 5 min cooling
+                    print(f"[{now}] ⚠️ 403 Forbidden! Shein is watching. Sleeping for 15 mins...")
+                    time.sleep(900) # Block aane par seedha 15 min ka gap
+                    break # Loop se bahar nikal kar naya session banayenge
                 
             except Exception as e:
-                print(f"Nitro Error: {e}")
+                print(f"Error: {e}")
 
-            # NITRO Human-Like Delay (Adjustable)
-            # 20-40 seconds is safe for Anti-Ghosting
-            time.sleep(random.randint(20, 40))
+            # STEALTH SLEEP (120 to 240 seconds - yani 2 se 4 minute ka gap)
+            wait = random.randint(120, 240)
+            print(f"Next check in {wait} seconds...")
+            time.sleep(wait)
 
 if __name__ == "__main__":
     monitor()
