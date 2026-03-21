@@ -1,81 +1,75 @@
-import requests
+import cloudscraper
 import time
-import random
+import os
+import requests
 from datetime import datetime
 
-# --- CONFIGURATION ---
-TOKEN = "8743319750:AAE6To6hX2b2gzG2PBTmfQDt1jPYGcqUdWI"
-CHAT_ID = "6814671965"
+# --- CONFIGURATION FROM RAILWAY VARIABLES ---
+TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-# Nayi Clean Links
-PRODUCT_LINKS = [
-    "https://www.sheinindia.in/p/443385135032",
-    "https://www.sheinindia.in/p/443390714004",
-    "https://www.sheinindia.in/p/443381553013",
-    "https://www.sheinindia.in/p/443390884008",
-    "https://www.sheinindia.in/p/443391939014",
-    "https://www.sheinindia.in/p/443390881012",
-    "https://www.sheinindia.in/p/443382539024",
-    "https://www.sheinindia.in/p/443391650013"
-]
+# Target URL for New Products
+TARGET_URL = "https://www.sheinindia.in/sheinverse/c/sverse-5939-37961?query=:relevance&classifier=intent"
 
-FINAL_LINKS = list(set(PRODUCT_LINKS))
+def send_notification(msg):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"}
+    try:
+        requests.post(url, data=payload)
+    except Exception as e:
+        print(f"Error sending telegram msg: {e}")
 
-# STEALTH USER AGENTS
-USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3.1 Mobile/15E148 Safari/604.1'
-]
-
-def get_stealth_headers():
-    return {
-        'User-Agent': random.choice(USER_AGENTS),
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-    }
-
-def monitor():
-    print(f"🕵️ Ultra-Stealth Mode Active | Tracking {len(FINAL_LINKS)} Items")
-    session = requests.Session()
+def monitor_new_products():
+    print("🚀 Sheinverse New Product Monitor Started!")
+    print(f"Settings: Sleep 30s | Interval 4s")
     
-    while True:
-        random.shuffle(FINAL_LINKS) # Har baar order badlega
-        
-        for url in FINAL_LINKS:
-            try:
-                headers = get_stealth_headers()
-                res = session.get(url, headers=headers, timeout=20)
-                
-                now = datetime.now().strftime('%H:%M:%S')
-                
-                if res.status_code == 200:
-                    html = res.text.lower()
-                    if "add to cart" in html or "buy now" in html:
-                        print(f"[{now}] 🔥 STOCK FOUND: {url}")
-                        msg = f"✅ **STOCK ALERT!**\n\nItem is available!\nLink: {url}"
-                        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                                      data={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"})
-                        time.sleep(15) # Found ke baad thoda break
-                    else:
-                        print(f"[{now}] Checking... Still Out of Stock")
-                
-                elif res.status_code == 403:
-                    print(f"[{now}] ⚠️ 403 Forbidden! Shein is watching. Sleeping for 15 mins...")
-                    time.sleep(900) # Block aane par seedha 15 min ka gap
-                    break # Loop se bahar nikal kar naya session banayenge
-                
-            except Exception as e:
-                print(f"Error: {e}")
+    scraper = cloudscraper.create_scraper(
+        browser={'browser': 'chrome', 'platform': 'windows', 'desktop': True}
+    )
+    
+    # Ismein hum purane products ke naam/ID save rakhenge
+    known_products = set()
+    first_run = True
 
-            # STEALTH SLEEP (120 to 240 seconds - yani 2 se 4 minute ka gap)
-            wait = random.randint(120, 240)
-            print(f"Next check in {wait} seconds...")
-            time.sleep(wait)
+    while True:
+        try:
+            res = scraper.get(TARGET_URL, timeout=30)
+            now = datetime.now().strftime('%H:%M:%S')
+            
+            if res.status_code == 200:
+                html_content = res.text.lower()
+                
+                # Simple logic: Humein product names ya unique strings dhoondne hain
+                # Is URL par har product ka ek unique class ya ID hota hai
+                # Hum abhi ke liye page ke content ko monitor kar rahe hain
+                
+                if first_run:
+                    print(f"[{now}] Initial scan complete. Monitoring for changes...")
+                    # Page ka initial state capture kar rahe hain
+                    known_products.add(hash(html_content)) 
+                    first_run = False
+                else:
+                    current_state = hash(html_content)
+                    if current_state not in known_products:
+                        print(f"[{now}] 🔥 NEW PRODUCT DETECTED!")
+                        send_notification(f"🚀 **NEW PRODUCT DETECTED!**\n\nSheinverse page has been updated.\nLink: {TARGET_URL}")
+                        known_products.add(current_state)
+                    else:
+                        print(f"[{now}] No new products. Sleeping...")
+
+            elif res.status_code == 403:
+                print(f"[{now}] ⚠️ 403 Forbidden. WAF blocked. Cooling down...")
+                time.sleep(300) # 5 min rest if blocked
+
+        except Exception as e:
+            print(f"Error: {e}")
+
+        # Aapka bataya hua timing logic: 30 sec sleep
+        time.sleep(30)
 
 if __name__ == "__main__":
-    monitor()
-    
+    if not TOKEN or not CHAT_ID:
+        print("❌ Error: TELEGRAM_BOT_TOKEN ya TELEGRAM_CHAT_ID Railway variables mein nahi mila!")
+    else:
+        monitor_new_products()
+        
