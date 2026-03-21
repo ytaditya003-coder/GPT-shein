@@ -1,14 +1,13 @@
 import requests
 import time
 import random
-from bs4 import BeautifulSoup
 
 # --- CONFIGURATION ---
 TOKEN = "8743319750:AAE6To6hX2b2gzG2PBTmfQDt1jPYGcqUdWI"
 CHAT_ID = "6814671965"
 
-# Aapki di hui specific links (Cleaned)
-RAW_LINKS = [
+# Aapki Saari Links (Duplicates Automatically Removed)
+PRODUCT_LINKS = [
     "https://www.sheinindia.in/shein-shein-drop-shoulder-numeric-chest-print-crew-tshirt/p/443383652_royalblue?user=old",
     "https://www.sheinindia.in/shein-shein-drop-shoulder-numeric-chest-print-crew-tshirt/p/443383652_bottlegreen?user=old",
     "https://www.sheinindia.in/shein-shein-drop-shoulder-graphic-chest-print-crew-tshirt/p/443388774_black?user=old",
@@ -68,76 +67,57 @@ RAW_LINKS = [
     "https://www.sheinindia.in/shein-shein-drop-shoulder-numeric-back-print-crew-tshirt/p/443388880_olive?user=old"
 ]
 
-# Filtering duplicates and ensuring only sheinindia links
-PRODUCT_LINKS = list(set([url.strip() for url in RAW_LINKS if "sheinindia.in" in url]))
+# Clean list (Duplicates removed)
+FINAL_LINKS = list(set(PRODUCT_LINKS))
 
-# Advanced Header Pool
+# Anti-Block User Agents
 USER_AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/122.0.0.0'
 ]
 
-def send_telegram_alert(link):
-    text = f"🚨 **PRODUCT DETECTED!**\n\n✅ Add to Cart / Buy Now is ACTIVE!\n\n🔗 [Click here to Buy]({link})"
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": text, "parse_mode": "Markdown"}
-    try:
-        requests.post(url, data=payload)
-    except Exception as e:
-        print(f"Telegram Error: {e}")
-
-def check_stock():
-    print(f"🕵️ Ghost Mode 4.0 started. Monitoring {len(PRODUCT_LINKS)} items...")
-    
-    # Session with cookie persistence
+def monitor():
+    print(f"🚀 Anti-Block Monitoring Started! Items: {len(FINAL_LINKS)}")
     session = requests.Session()
-    random.shuffle(PRODUCT_LINKS)
-
-    for url in PRODUCT_LINKS:
-        try:
-            headers = {
-                'User-Agent': random.choice(USER_AGENTS),
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Referer': 'https://www.google.com/',
-                'DNT': '1',
-                'Upgrade-Insecure-Requests': '1'
-            }
-
-            # Railway bypass: Using a slightly higher timeout
-            response = session.get(url, headers=headers, timeout=25)
-            
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
-                page_text = soup.get_text().lower()
-                
-                # Detecting Purchase Options
-                buy_indicators = ["add to cart", "buy now", "in stock", "bag it"]
-                found = any(word in page_text for word in buy_indicators)
-                
-                if found:
-                    print(f"🔥 MATCH: Purchase option found on {url}")
-                    send_telegram_alert(url)
-                else:
-                    print(f"😴 Out of Stock: {url[:50]}...")
-            
-            elif response.status_code == 403:
-                print(f"⚠️ IP Flagged (403). Cooldown initiated...")
-                time.sleep(random.randint(120, 180)) # Longer break if blocked
-            
-        except Exception as e:
-            print(f"Request Error: {e}")
+    
+    while True:
+        # Shuffle links har baar naya order
+        random.shuffle(FINAL_LINKS)
         
-        # Human-like random delay (45-60 sec)
-        delay = random.randint(45, 60)
-        print(f"Sleeping for {delay}s...")
-        time.sleep(delay)
+        for url in FINAL_LINKS:
+            try:
+                headers = {
+                    'User-Agent': random.choice(USER_AGENTS),
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Referer': 'https://www.google.com/',
+                    'DNT': '1'
+                }
+                
+                res = session.get(url, headers=headers, timeout=20)
+                
+                if res.status_code == 200:
+                    content = res.text.lower()
+                    # Stock Checking Logic
+                    if "add to cart" in content or "buy now" in content:
+                        print(f"🔥 IN STOCK: {url[:50]}...")
+                        msg = f"✅ **STOCK ALERT!**\n\nProduct is back!\nLink: {url}"
+                        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                                      data={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"})
+                    else:
+                        print(f"Checking: Out of Stock")
+                
+                elif res.status_code == 403:
+                    print("⚠️ Forbidden (403) - Anti-Block Triggered! Sleeping for 10 mins...")
+                    time.sleep(600) # 10 minute ka break
+                
+            except Exception as e:
+                print(f"Connection Error: {e}")
+
+            # Human-like Random Sleep (30 to 50 seconds)
+            wait_time = random.randint(30, 50)
+            time.sleep(wait_time)
 
 if __name__ == "__main__":
-    while True:
-        check_stock()
-        # Round cooldown to prevent aggressive scraping
-        print("Round complete. Cooling down for 5 minutes...")
-        time.sleep(300)
-        
+    monitor()
